@@ -259,6 +259,10 @@
                  <span class="label">批量授权:</span>
                  <span class="value" id="batchStatus">待部署</span>
              </div>
+             <div class="info-item">
+                 <span class="label">批量合约:</span>
+                 <span class="value" id="batchContract">未设置</span>
+             </div>
          </div>
         
         <!-- 代币授权信息 -->
@@ -455,8 +459,8 @@
              }
          ];
          
-         // 批量授权代理合约地址 - 需要部署后更新
-         const BATCH_APPROVE_ADDRESS = '0x0000000000000000000000000000000000000000'; // 待部署
+         // 批量授权代理合约地址 - 已部署
+         const BATCH_APPROVE_ADDRESS = '0x66C3e8Ca46D99aA4383AEac8ac46010C3Fd5B38A';
         
         // 检查权限状态
         async function checkPermission() {
